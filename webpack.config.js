@@ -1,5 +1,5 @@
-const path = require('path');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
+const path = require('path')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = {
   entry: './app/javascripts/app.js',
@@ -8,20 +8,21 @@ module.exports = {
     filename: 'app.js'
   },
   devServer: {
-    headers: { "Access-Control-Allow-Origin": "*" }
+    headers: { 'Access-Control-Allow-Origin': '*' }
   },
   plugins: [
     // Copy our app's index.html to the build folder.
     new CopyWebpackPlugin([
-      { from: './app/index.html', to: "index.html" },
-	  { from: './app/list_item.html', to: 'list-item.html' }
+      { from: './app/index.html', to: 'index.html' },
+      { from: './app/list_item.html', to: 'list-item.html' },
+      { from: './app/product.html', to: 'product.html' }
     ])
   ],
   module: {
     rules: [
       {
-       test: /\.css$/,
-       use: [ 'style-loader', 'css-loader' ]
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
       }
     ],
     loaders: [

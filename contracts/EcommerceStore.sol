@@ -1,5 +1,7 @@
 pragma solidity ^0.4.13;
 
+import "contracts/Escrow.sol";
+
 contract EcommerceStore {
   enum ProductStatus {Open, Sold, Unsold}
   enum ProductCondition {New, Used}
@@ -7,6 +9,8 @@ contract EcommerceStore {
   uint public productIndex;
   mapping(address => mapping(uint => Product)) stores;
   mapping(uint => address) productIdInStore;
+
+  mapping(uint => address) productEscrow;
 
   struct Bid {
     address bidder;
@@ -117,6 +121,49 @@ contract EcommerceStore {
       msg.sender.transfer(refund);
       product.bids[msg.sender][sealedBid].revealed = true;
     }
+  }
+
+  function finalizeAuction(uint _productId) public {
+    // originally product was declared as memory var,
+    // however, this will result in copying the object from state store to memory
+    // which results in that changes could not be committed back
+    Product product = stores[productIdInStore[_productId]][_productId];
+
+    require(now > product.auctionEndTime);
+    require(product.status == ProductStatus.Open);
+    require(product.highestBidder != msg.sender);
+    require(productIdInStore[_productId] != msg.sender);
+
+    if (product.totalBids == 0) {
+      product.status = ProductStatus.Unsold;
+    } else {
+      Escrow escrow = (new Escrow).value(product.secondHighestBid)(
+        _productId,
+        product.highestBidder,
+        productIdInStore[_productId],
+        msg.sender);
+      productEscrow[_productId] = address(escrow);
+      product.status = ProductStatus.Sold;
+
+      uint refund = product.highestBid - product.secondHighestBid;
+      product.highestBidder.transfer(refund);
+    }
+  }
+
+  function releaseAmountToSeller(uint _productId) public {
+    Escrow(productEscrow[_productId]).releaseAmountToSeller(msg.sender);
+  }
+
+  function refundAmountToBuyer(uint _productId) public {
+    Escrow(productEscrow[_productId]).refundAmountToBuyer(msg.sender);
+  }
+
+  function escrowAddressForProduct(uint _productId) view public returns (address) {
+    return productEscrow[_productId];
+  }
+
+  function escrowInfo(uint _productId) view public returns (address, address, address, bool, uint, uint) {
+    return Escrow(productEscrow[_productId]).escrowInfo();
   }
 
 
